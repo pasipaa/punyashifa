@@ -32,15 +32,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadAll() async {
     setState(() => _loading = true);
     try {
-      final results = await Future.wait([
-        getUser(_userId),
-        getHistory(),
-        getWishlist(),
-      ]);
+      final user = await ApiService.getUser(_userId);
+final history = await ApiService.getHistory();
+final wishlist = await ApiService.getWishlist();
       setState(() {
-        _user = results[0] as Map<String, dynamic>;
-        _history = results[1] as List<dynamic>;
-        _wishlist = results[2] as List<dynamic>;
+        _user = user;
+        _history = history;
+        _wishlist = wishlist;
       });
     } catch (e) {
       setState(() {
@@ -52,7 +50,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _deleteWishlist(int id, int index) async {
-    final ok = await deleteWishlist(id);
+    final ok = await ApiService.deleteWishlist(id);
     if (ok) {
       setState(() => _wishlist.removeAt(index));
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,10 +120,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // ───────────────────────── HEADER ─────────────────────────
-  Widget _buildHeader() {
-    final name = _user?['name'] ?? _user?['username'] ?? 'Nanami Kento';
-    final address = _user?['address'] ?? _user?['alamat'] ?? 'Your Address';
-    final avatar = _user?['avatar'] ?? _user?['photo'] ?? '';
+ Widget _buildHeader() {
+  final name = _user?['name'] ?? 'Guest';
+  final address = _user?['address'] ?? '-';
+  final avatar = _user?['avatar'] ?? '';
 
     return Container(
       width: double.infinity,

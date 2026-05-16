@@ -1,12 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:food_app/constants/app_constanst.dart';
 import 'package:food_app/models/CartItems_models.dart';
 import 'package:food_app/models/History_models.dart';
 import 'package:food_app/models/Product_models.dart';
-import 'package:food_app/services/API_services.dart' as api;
-import 'package:http/http.dart' as http;
+import 'package:food_app/services/API_services.dart';
 
 class ProductController extends ChangeNotifier {
   // ================= PRODUCT =================
@@ -32,8 +28,7 @@ class ProductController extends ChangeNotifier {
 
   List<HistoryItem> _histories = [];
 
-List<HistoryItem> get histories => _histories;
-
+  List<HistoryItem> get histories => _histories;
 
   // ================= LOADING =================
 
@@ -41,14 +36,14 @@ List<HistoryItem> get histories => _histories;
 
   bool get isLoading => _isLoading;
 
-  // ================= LOAD PRODUCT =================
+  // ================= LOAD PRODUCTS =================
 
   Future<void> loadProducts() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final raw = await api.getProducts();
+      final raw = await ApiService.getProducts();
 
       _allProducts =
           raw.map((e) => Product.fromJson(e)).toList();
@@ -56,7 +51,6 @@ List<HistoryItem> get histories => _histories;
       _filteredProducts = List.from(_allProducts);
     } catch (e) {
       debugPrint("Load Product Error: $e");
-
       _allProducts = [];
       _filteredProducts = [];
     }
@@ -72,7 +66,7 @@ List<HistoryItem> get histories => _histories;
     notifyListeners();
 
     try {
-      final raw = await api.getProducts();
+      final raw = await ApiService.getProducts();
 
       _allProducts =
           raw.map((e) => Product.fromJson(e)).toList();
@@ -84,7 +78,6 @@ List<HistoryItem> get histories => _histories;
       }).toList();
     } catch (e) {
       debugPrint("Category Error: $e");
-
       _filteredProducts = [];
     }
 
@@ -99,41 +92,48 @@ List<HistoryItem> get histories => _histories;
       _filteredProducts = List.from(_allProducts);
     } else {
       _filteredProducts = _allProducts.where((p) {
-        return p.name
-            .toLowerCase()
-            .contains(query.toLowerCase());
+        return p.name.toLowerCase().contains(query.toLowerCase());
       }).toList();
     }
 
     notifyListeners();
   }
 
-  // ================= ADD TO CART =================
+  // ================= ADD TO CART (FIXED) =================
 
+  /// Menambahkan produk ke keranjang belanja.
+  /// [product] wajib diletakkan di argumen pertama.
+  /// [selectedSize], [quantity], dan [selectedAddons] bersifat opsional di dalam `{}`.
   void addToCart(
-    Product product,
-    ProductSize selectedSize,
-    int quantity, {
+    Product product, {
+    ProductSize? selectedSize,
+    int quantity = 1,
     List<Addon> selectedAddons = const [],
   }) {
+    // Menentukan size yang digunakan. Jika user tidak memilih, 
+    // sistem mengambil size pertama dari list produk. Jika list kosong, dibuatkan default "Regular".
+    final finalSize = selectedSize ?? 
+        (product.sizes != null && product.sizes!.isNotEmpty 
+            ? product.sizes!.first 
+            : ProductSize(label: "Regular", price: 0));
+
+    // Mencari apakah item dengan spesifikasi produk, size, dan addon yang sama sudah ada di keranjang
     final existingIndex = _cartItems.indexWhere(
       (item) =>
           item.product.id == product.id &&
-          item.selectedSize.label ==
-              selectedSize.label &&
-          _sameAddons(
-            item.selectedAddons,
-            selectedAddons,
-          ),
+          item.selectedSize.label == finalSize.label &&
+          _sameAddons(item.selectedAddons, selectedAddons),
     );
 
     if (existingIndex != -1) {
+      // Jika produk sudah ada, tinggal tambahkan quantity-nya
       _cartItems[existingIndex].quantity += quantity;
     } else {
+      // Jika produk belum ada, buat item baru di dalam list keranjang
       _cartItems.add(
         CartItem(
           product: product,
-          selectedSize: selectedSize,
+          selectedSize: finalSize,
           quantity: quantity,
           selectedAddons: selectedAddons,
         ),
@@ -143,22 +143,14 @@ List<HistoryItem> get histories => _histories;
     notifyListeners();
   }
 
-  bool _sameAddons(
-    List<Addon> a,
-    List<Addon> b,
-  ) {
+  bool _sameAddons(List<Addon> a, List<Addon> b) {
     if (a.length != b.length) return false;
 
-    final sortedA =
-        a.map((e) => e.name).toList()..sort();
-
-    final sortedB =
-        b.map((e) => e.name).toList()..sort();
+    final sortedA = a.map((e) => e.name).toList()..sort();
+    final sortedB = b.map((e) => e.name).toList()..sort();
 
     for (int i = 0; i < sortedA.length; i++) {
-      if (sortedA[i] != sortedB[i]) {
-        return false;
-      }
+      if (sortedA[i] != sortedB[i]) return false;
     }
 
     return true;
@@ -166,13 +158,8 @@ List<HistoryItem> get histories => _histories;
 
   // ================= QUANTITY =================
 
-  void updateQuantity(
-    int index,
-    int change,
-  ) {
-    if (index < 0 || index >= _cartItems.length) {
-      return;
-    }
+  void updateQuantity(int index, int change) {
+    if (index < 0 || index >= _cartItems.length) return;
 
     _cartItems[index].quantity += change;
 
@@ -186,100 +173,68 @@ List<HistoryItem> get histories => _histories;
   // ================= REMOVE =================
 
   void removeFromCart(int index) {
-    if (index < 0 || index >= _cartItems.length) {
-      return;
-    }
+    if (index < 0 || index >= _cartItems.length) return;
 
     _cartItems.removeAt(index);
-
     notifyListeners();
   }
 
   // ================= CHECKOUT =================
 
-  // ── Checkout → POST /transaksi ─────────────────────────
-Future<bool> checkout() async {
-  try {
-    bool success = true;
-
-    for (var item in _cartItems) {
-      final response = await http.post(
-        Uri.parse('${AppConstants.baseUrl}/transaksi'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          "user_id": 1,
-
-          "barang_id": item.product.id,
-          "nama_barang": item.product.name,
-          "image": item.product.imageUrl,
-
-          "size": item.selectedSize.label,
-
-          "addons": item.selectedAddons
-              .map((e) => e.name)
-              .toList(),
-
-          "quantity": item.quantity,
-
-          "harga": item.totalPrice,
-
-          "tanggal": DateTime.now().toIso8601String(),
-
-          "status": "success",
-        }),
-      );
-
-      debugPrint("STATUS: ${response.statusCode}");
-      debugPrint("BODY: ${response.body}");
-
-      if (response.statusCode != 200 &&
-          response.statusCode != 201) {
-        success = false;
-      }
-    }
-
-    if (success) {
-      _cartItems.clear();
-      notifyListeners();
-      return true;
-    }
-
-    return false;
-  } catch (e) {
-    debugPrint("CHECKOUT ERROR: $e");
-    return false;
-  }
-}
-
-  // ================= WISHLIST =================
-
-  Future<void> toggleWishlist(
-    Product product,
-  ) async {
+  Future<bool> checkout() async {
     try {
-      bool success = false;
+      bool success = true;
 
-      if (product.isWishlisted) {
-        success = await api.deleteWishlist(
-          product.id,
-        );
-      } else {
-        success = await api.addWishlist(
-          product.id,
-        );
+      for (var item in _cartItems) {
+        final result = await ApiService.postTransaksi([
+          {
+            "user_id": 1,
+            "barang_id": item.product.id,
+            "nama_barang": item.product.name,
+            "image": item.product.imageUrl,
+            "size": item.selectedSize.label,
+            "addons": item.selectedAddons.map((e) => e.name).toList(),
+            "quantity": item.quantity,
+            "harga": item.totalPrice,
+            "tanggal": DateTime.now().toIso8601String(),
+            "status": "success",
+          }
+        ], item.totalPrice);
+
+        if (!result) success = false;
       }
 
       if (success) {
-        product.isWishlisted =
-            !product.isWishlisted;
+        _cartItems.clear();
+        notifyListeners();
+        return true;
+      }
 
+      return false;
+    } catch (e) {
+      debugPrint("CHECKOUT ERROR: $e");
+      return false;
+    }
+  }
+
+  // ================= WISHLIST =================
+
+  Future<void> toggleWishlist(Product product) async {
+    try {
+      bool success;
+
+      if (product.isWishlisted) {
+        success = await ApiService.deleteWishlist(product.id);
+      } else {
+        success = await ApiService.addWishlist(product.id);
+      }
+
+      if (success) {
+        product.isWishlisted = !product.isWishlisted;
         notifyListeners();
       }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("WISHLIST ERROR: $e");
     }
   }
 

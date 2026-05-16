@@ -15,24 +15,25 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   int _selectedSizeIndex = 0;
-int _quantity = 1;
+  int _quantity = 1;
 
-List<Addon> selectedAddons = [];
+  List<Addon> selectedAddons = [];
 
-Product get product => widget.product;
+  Product get product => widget.product;
 
-  ProductSize get selectedSize => product.sizes.isNotEmpty
-      ? product.sizes[_selectedSizeIndex]
+  // Perbaikan null-safety check pada sizes
+  ProductSize get selectedSize => product.sizes != null && product.sizes!.isNotEmpty
+      ? product.sizes![_selectedSizeIndex]
       : ProductSize(label: 'Regular', price: product.harga);
 
   int get totalPrice {
-  final addonTotal = selectedAddons.fold(
-    0,
-    (sum, addon) => sum + addon.price,
-  );
+    final addonTotal = selectedAddons.fold(
+      0,
+      (sum, addon) => sum + addon.price,
+    );
 
-  return (selectedSize.price + addonTotal) * _quantity;
-}
+    return (selectedSize.price + addonTotal) * _quantity;
+  }
 
   String _formatRupiah(int value) {
     if (value == 0) return 'Rp0';
@@ -45,13 +46,15 @@ Product get product => widget.product;
     return 'Rp${buffer.toString()}';
   }
 
+  // ================= PERBAIKAN DI SINI =================
   void _addToCart() {
     final controller = context.read<ProductController>();
 
+    // Menggunakan named parameters untuk selectedSize dan quantity sesuai controller baru
     controller.addToCart(
       product,
-      selectedSize,
-      _quantity,
+      selectedSize: selectedSize,
+      quantity: _quantity,
       selectedAddons: selectedAddons,
     );
 
@@ -231,7 +234,7 @@ Product get product => widget.product;
                             const SizedBox(height: 20),
 
                             // Pilihan Size
-                            if (product.sizes.isNotEmpty) ...[
+                            if (product.sizes != null && product.sizes!.isNotEmpty) ...[
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -250,7 +253,7 @@ Product get product => widget.product;
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      'Pilih ${product.sizes.length}',
+                                      'Pilih ${product.sizes!.length}',
                                       style: const TextStyle(
                                           fontSize: 11,
                                           color: Color(0xFF2D5016),
@@ -260,7 +263,7 @@ Product get product => widget.product;
                                 ],
                               ),
                               const SizedBox(height: 10),
-                              ...product.sizes.asMap().entries.map((entry) {
+                              ...product.sizes!.asMap().entries.map((entry) {
                                 final i = entry.key;
                                 final size = entry.value;
                                 final isSelected = _selectedSizeIndex == i;
@@ -342,7 +345,7 @@ Product get product => widget.product;
                             ],
 
                             // Add-ons (jika ada)
-                            if (product.addons.isNotEmpty) ...[
+                            if (product.addons != null && product.addons!.isNotEmpty) ...[
                               const Text(
                                 'Add-ons',
                                 style: TextStyle(
@@ -352,7 +355,7 @@ Product get product => widget.product;
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
-                                children: product.addons.map((addon) {
+                                children: product.addons!.map((addon) {
                                   final isSelected = selectedAddons.any(
                                     (a) => a.name == addon.name,
                                   );

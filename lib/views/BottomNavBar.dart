@@ -16,7 +16,7 @@ class BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -24,58 +24,66 @@ class BottomNavBar extends StatelessWidget {
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
             blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildItem(Icons.home, 0),
+          _item(Icons.home, 0),
+
+          // ================= MENU (TENGAH) =================
+          _item(Icons.menu, 1),
+
+          // ================= CART =================
           Stack(
+            clipBehavior: Clip.none,
             children: [
-              _buildItem(Icons.shopping_cart_outlined, 1),
+              _item(Icons.person_outline, 2),
+
               if (cartCount > 0)
                 Positioned(
-                  top: 0,
-                  right: 0,
+                  right: -6,
+                  top: -6,
                   child: Container(
-                    width: 16,
-                    height: 16,
+                    padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
                     ),
-                    child: Center(
-                      child: Text(
-                        '$cartCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    child: Text(
+                      cartCount > 9 ? '9+' : '$cartCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
             ],
           ),
-          _buildItem(Icons.person_outline, 2),
         ],
       ),
     );
   }
 
-  Widget _buildItem(IconData icon, int index) {
+  Widget _item(IconData icon, int index) {
     final isActive = currentIndex == index;
 
     return GestureDetector(
       onTap: () => onTap(index),
-      child: Icon(
-        icon,
-        size: 26,
-        color: isActive
-            ? const Color(0xFF2D5016)
-            : Colors.grey.shade500,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          icon,
+          size: 26,
+          color: isActive
+              ? const Color(0xFF2D5016)
+              : Colors.grey.shade500,
+        ),
       ),
     );
   }
