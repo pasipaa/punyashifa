@@ -10,8 +10,7 @@ class SplashView extends StatefulWidget {
   State<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashViewState extends State<SplashView>
-    with TickerProviderStateMixin {
+class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   late AnimationController _mascotCtrl;
   late AnimationController _textCtrl;
   late Animation<double> _mascotScale;
@@ -43,11 +42,11 @@ class _SplashViewState extends State<SplashView>
   void initState() {
     super.initState();
 
-    _mascotCtrl =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _mascotCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
 
-    _textCtrl =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+    _textCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 450));
 
     _mascotScale =
         CurvedAnimation(parent: _mascotCtrl, curve: Curves.easeOutBack);
@@ -57,8 +56,7 @@ class _SplashViewState extends State<SplashView>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _mascotCtrl, curve: Curves.easeOut));
 
-    _textFade =
-        CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut);
+    _textFade = CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut);
 
     _textSlide = Tween<Offset>(
       begin: const Offset(0, 0.2),
@@ -130,7 +128,6 @@ class _SplashViewState extends State<SplashView>
                   ),
                 ),
               ),
-
               Expanded(
                 flex: 4,
                 child: Container(
@@ -153,8 +150,7 @@ class _SplashViewState extends State<SplashView>
                               Text(
                                 data['title']!,
                                 style: GoogleFonts.poppins(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700),
+                                    fontSize: 22, fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 8),
                               Text(data['desc']!),
@@ -163,7 +159,6 @@ class _SplashViewState extends State<SplashView>
                         ),
                       ),
                       const Spacer(),
-
                       Row(
                         children: List.generate(_pages.length, (i) {
                           final active = i == _currentPage;
@@ -180,9 +175,7 @@ class _SplashViewState extends State<SplashView>
                           );
                         }),
                       ),
-
                       const SizedBox(height: 14),
-
                       GestureDetector(
                         onTap: _nextPage,
                         child: Container(
@@ -206,7 +199,6 @@ class _SplashViewState extends State<SplashView>
               ),
             ],
           ),
-
           if (!isLast)
             Positioned(
               top: MediaQuery.of(context).padding.top + 12,

@@ -17,7 +17,7 @@ class _MainNavState extends State<MainNav> {
 
   final List<Widget> pages = [
     DashboardPage(),
-    MenuPage(), // 👈 TENGAH MENU
+    MenuPage(),
     ProfilePage(),
   ];
 
@@ -31,10 +31,9 @@ class _MainNavState extends State<MainNav> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: pages[_currentIndex],
-
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
-        cartCount: 0, // nanti bisa sambung provider cart kamu
+        cartCount: 0,
         onTap: _onNavTap,
       ),
     );

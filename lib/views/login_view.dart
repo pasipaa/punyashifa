@@ -16,7 +16,8 @@ class LoginView extends StatefulWidget {
   State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMixin {
+class _LoginViewState extends State<LoginView>
+    with SingleTickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -64,7 +65,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
           content: Text(auth.error ?? 'Login gagal'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -77,7 +79,6 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
       body: SafeArea(
         child: Column(
           children: [
-            // ── Top bar ─────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
@@ -105,7 +106,6 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -132,7 +132,6 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                           ),
                           const SizedBox(height: 24),
 
-                          // ── Form fields ────────────────────────────────
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
@@ -146,7 +145,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                   hint: 'Email Address',
                                   icon: Icons.email_outlined,
                                   keyboardType: TextInputType.emailAddress,
-                                  validator: (v) => v!.isEmpty ? 'Email wajib diisi' : null,
+                                  validator: (v) =>
+                                      v!.isEmpty ? 'Email wajib diisi' : null,
                                 ),
                                 const SizedBox(height: 14),
                                 AuthTextField(
@@ -162,9 +162,12 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                       color: Colors.grey[400],
                                       size: 20,
                                     ),
-                                    onPressed: () => setState(() => _obscure = !_obscure),
+                                    onPressed: () =>
+                                        setState(() => _obscure = !_obscure),
                                   ),
-                                  validator: (v) => v!.isEmpty ? 'Password wajib diisi' : null,
+                                  validator: (v) => v!.isEmpty
+                                      ? 'Password wajib diisi'
+                                      : null,
                                 ),
                               ],
                             ),
@@ -219,9 +222,11 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                           // OR divider
                           Row(
                             children: [
-                              const Expanded(child: Divider(color: Color(0xFFD0D0D0))),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFD0D0D0))),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
                                 child: Text(
                                   'OR',
                                   style: GoogleFonts.poppins(
@@ -230,7 +235,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                   ),
                                 ),
                               ),
-                              const Expanded(child: Divider(color: Color(0xFFD0D0D0))),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFD0D0D0))),
                             ],
                           ),
 
@@ -243,7 +249,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                           GestureDetector(
                             onTap: () => Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => const RegisterView()),
+                              MaterialPageRoute(
+                                  builder: (_) => const RegisterView()),
                             ),
                             child: RichText(
                               text: TextSpan(
@@ -329,40 +336,41 @@ class _GoogleLogoPainter extends CustomPainter {
     final double r = size.width / 2;
     final Paint paint = Paint()..style = PaintingStyle.fill;
 
-    // Kuning (Top-Left ke Top-Right)
     paint.color = const Color(0xFFFBBC05);
     final Path yellowPath = Path()
       ..moveTo(r, r)
       ..lineTo(r - 0.72 * r, r - 0.69 * r)
-      ..arcToPoint(Offset(r + 0.72 * r, r - 0.69 * r), radius: Radius.circular(r), clockwise: true)
+      ..arcToPoint(Offset(r + 0.72 * r, r - 0.69 * r),
+          radius: Radius.circular(r), clockwise: true)
       ..close();
     canvas.drawPath(yellowPath, paint);
 
-    // Hijau (Bottom-Left ke Bottom-Right)
     paint.color = const Color(0xFF34A853);
     final Path greenPath = Path()
       ..moveTo(r, r)
       ..lineTo(r - 0.72 * r, r + 0.69 * r)
-      ..arcToPoint(Offset(r + 0.72 * r, r + 0.69 * r), radius: Radius.circular(r), clockwise: false)
+      ..arcToPoint(Offset(r + 0.72 * r, r + 0.69 * r),
+          radius: Radius.circular(r), clockwise: false)
       ..close();
     canvas.drawPath(greenPath, paint);
 
-    // Merah (Sisi Kiri)
     paint.color = const Color(0xFFEA4335);
     final Path redPath = Path()
       ..moveTo(r, r)
       ..lineTo(r - 0.72 * r, r - 0.69 * r)
-      ..arcToPoint(Offset(r - 0.72 * r, r + 0.69 * r), radius: Radius.circular(r), clockwise: false)
+      ..arcToPoint(Offset(r - 0.72 * r, r + 0.69 * r),
+          radius: Radius.circular(r), clockwise: false)
       ..close();
     canvas.drawPath(redPath, paint);
 
-    // Biru (Sisi Kanan dan Palang Tengah G)
     paint.color = const Color(0xFF4285F4);
     final Path bluePath = Path()
       ..moveTo(r, r)
       ..lineTo(r + 0.72 * r, r - 0.69 * r)
-      ..arcToPoint(Offset(r + 1.0 * r, r), radius: Radius.circular(r), clockwise: true)
-      ..arcToPoint(Offset(r + 0.72 * r, r + 0.69 * r), radius: Radius.circular(r), clockwise: true)
+      ..arcToPoint(Offset(r + 1.0 * r, r),
+          radius: Radius.circular(r), clockwise: true)
+      ..arcToPoint(Offset(r + 0.72 * r, r + 0.69 * r),
+          radius: Radius.circular(r), clockwise: true)
       ..lineTo(r, r + 0.2 * r)
       ..lineTo(r + 0.95 * r, r + 0.2 * r)
       ..lineTo(r + 0.95 * r, r - 0.2 * r)
@@ -370,11 +378,9 @@ class _GoogleLogoPainter extends CustomPainter {
       ..close();
     canvas.drawPath(bluePath, paint);
 
-    // Mask Tengah Putih (Agar membentuk huruf G berlubang)
     paint.color = Colors.white;
     canvas.drawCircle(Offset(r, r), r * 0.6, paint);
 
-    // Potongan kecil ekstra putih di atas palang biru agar pas menjadi struktur G
     final Path whiteCut = Path()
       ..moveTo(r + 0.5 * r, r - 0.2 * r)
       ..lineTo(r + 1.0 * r, r - 0.2 * r)

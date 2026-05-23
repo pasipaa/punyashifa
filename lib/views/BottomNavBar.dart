@@ -32,16 +32,11 @@ class BottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _item(Icons.home, 0),
-
-          // ================= MENU (TENGAH) =================
           _item(Icons.menu, 1),
-
-          // ================= CART =================
           Stack(
             clipBehavior: Clip.none,
             children: [
               _item(Icons.person_outline, 2),
-
               if (cartCount > 0)
                 Positioned(
                   right: -6,
@@ -80,9 +75,7 @@ class BottomNavBar extends StatelessWidget {
         child: Icon(
           icon,
           size: 26,
-          color: isActive
-              ? const Color(0xFF2D5016)
-              : Colors.grey.shade500,
+          color: isActive ? const Color(0xFF2D5016) : Colors.grey.shade500,
         ),
       ),
     );

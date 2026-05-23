@@ -16,14 +16,12 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   bool get initialized => _initialized;
 
-  // FIX: jangan return null
   bool get isAuthenticated => _isLoggedIn;
 
   AuthProvider() {
     _checkLoginStatus();
   }
 
-  /// Load session dari local storage (tanpa network)
   Future<void> _checkLoginStatus() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -55,7 +53,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Refresh user dari API (after login / update profile)
   Future<void> refreshUser() async {
     try {
       if (_user?.id == null) return;
@@ -72,58 +69,69 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// LOGIN
   Future<bool> login(String email, String password) async {
-  _isLoading = true;
-  _error = null;
-  notifyListeners();
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
 
-  try {
-    final data = await ApiService.login(email, password);
+    try {
+      final data = await ApiService.login(email, password);
 
-    final userData = data['data'];
+      print("LOGIN RESPONSE: $data");
 
-    if (userData == null) {
-      _error = 'Data user tidak ditemukan';
+      final userData = data['data'];
+
+      if (userData == null) {
+        _error = data['message'] ?? 'Data user tidak ditemukan';
+
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      _user = UserModel.fromJson(userData);
+      _isLoggedIn = true;
+
+      final prefs = await SharedPreferences.getInstance();
+
+      final token = data['token'];
+
+      if (token != null) {
+        await prefs.setString('token', token);
+      }
+
+      if (_user?.id != null) {
+        await prefs.setInt('user_id', _user!.id!);
+      }
+
+      if (_user?.username != null) {
+        await prefs.setString(
+          'user_name',
+          _user!.username!,
+        );
+      }
+
+      if (_user?.email != null) {
+        await prefs.setString(
+          'user_email',
+          _user!.email!,
+        );
+      }
+
       _isLoading = false;
       notifyListeners();
+
+      return true;
+    } catch (e) {
+      _error = 'Network error: $e';
+
+      _isLoading = false;
+      notifyListeners();
+
       return false;
     }
-
-    _user = UserModel.fromJson(userData);
-    _isLoggedIn = true;
-
-    // =========================
-    // DUMMY TOKEN (WAJIB KARENA BACKEND TIDAK KIRIM TOKEN)
-    // =========================
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', 'logged_in'); // ← INI DI SINI
-
-    if (_user?.id != null) {
-      await prefs.setInt('user_id', _user!.id!);
-    }
-
-    if (_user?.username != null) {
-      await prefs.setString('user_name', _user!.username!);
-    }
-
-    if (_user?.email != null) {
-      await prefs.setString('user_email', _user!.email!);
-    }
-
-    _isLoading = false;
-    notifyListeners();
-    return true;
-
-  } catch (e) {
-    _error = 'Network error: $e';
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
-}
 
-  /// REGISTER
   Future<bool> register({
     required String name,
     required String email,
@@ -160,7 +168,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// FORGOT PASSWORD
   Future<bool> forgotPassword(String emailOrPhone) async {
     _isLoading = true;
     _error = null;
@@ -183,7 +190,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// LOGOUT
   Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();

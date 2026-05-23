@@ -14,15 +14,12 @@ class CartItem {
     this.selectedAddons = const [],
   });
 
-  int get addonTotal =>
-      selectedAddons.fold(
+  int get addonTotal => selectedAddons.fold(
         0,
         (sum, addon) => sum + addon.price,
       );
 
-  int get unitPrice =>
-      selectedSize.price + addonTotal;
+  int get unitPrice => selectedSize.price + addonTotal;
 
-  int get totalPrice =>
-      unitPrice * quantity;
+  int get totalPrice => unitPrice * quantity;
 }

@@ -71,7 +71,8 @@ class _RegisterViewState extends State<RegisterView>
           content: Text('Registrasi berhasil! Silakan login.'),
           backgroundColor: const Color(0xFF2E6B45),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       Navigator.pushReplacement(
@@ -84,7 +85,8 @@ class _RegisterViewState extends State<RegisterView>
           content: Text(auth.error ?? 'Registrasi gagal'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -98,7 +100,6 @@ class _RegisterViewState extends State<RegisterView>
       body: SafeArea(
         child: Column(
           children: [
-            // Top bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
@@ -126,7 +127,6 @@ class _RegisterViewState extends State<RegisterView>
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -150,8 +150,6 @@ class _RegisterViewState extends State<RegisterView>
                             ),
                           ),
                           const SizedBox(height: 20),
-
-                          // Form card
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
@@ -164,7 +162,8 @@ class _RegisterViewState extends State<RegisterView>
                                   controller: _nameCtrl,
                                   hint: 'Full Name',
                                   icon: Icons.person_outline,
-                                  validator: (v) => v!.isEmpty ? 'Nama wajib diisi' : null,
+                                  validator: (v) =>
+                                      v!.isEmpty ? 'Nama wajib diisi' : null,
                                 ),
                                 const SizedBox(height: 12),
                                 AuthTextField(
@@ -172,7 +171,8 @@ class _RegisterViewState extends State<RegisterView>
                                   hint: 'Email Address',
                                   icon: Icons.email_outlined,
                                   keyboardType: TextInputType.emailAddress,
-                                  validator: (v) => v!.isEmpty ? 'Email wajib diisi' : null,
+                                  validator: (v) =>
+                                      v!.isEmpty ? 'Email wajib diisi' : null,
                                 ),
                                 const SizedBox(height: 12),
                                 AuthTextField(
@@ -197,25 +197,26 @@ class _RegisterViewState extends State<RegisterView>
                               ],
                             ),
                           ),
-
                           const SizedBox(height: 20),
                           AuthButton(
                             label: 'Sign Up',
                             isLoading: auth.isLoading,
                             onTap: _register,
                           ),
-
                           const SizedBox(height: 20),
                           Row(
                             children: [
-                              const Expanded(child: Divider(color: Color(0xFFD0D0D0))),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFD0D0D0))),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
                                 child: Text('OR',
                                     style: GoogleFonts.poppins(
                                         color: Colors.grey[500], fontSize: 12)),
                               ),
-                              const Expanded(child: Divider(color: Color(0xFFD0D0D0))),
+                              const Expanded(
+                                  child: Divider(color: Color(0xFFD0D0D0))),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -224,7 +225,8 @@ class _RegisterViewState extends State<RegisterView>
                           GestureDetector(
                             onTap: () => Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => const LoginView()),
+                              MaterialPageRoute(
+                                  builder: (_) => const LoginView()),
                             ),
                             child: RichText(
                               text: TextSpan(

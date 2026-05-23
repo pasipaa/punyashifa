@@ -21,10 +21,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Product get product => widget.product;
 
-  // Perbaikan null-safety check pada sizes
-  ProductSize get selectedSize => product.sizes != null && product.sizes!.isNotEmpty
-      ? product.sizes![_selectedSizeIndex]
-      : ProductSize(label: 'Regular', price: product.harga);
+  ProductSize get selectedSize =>
+      product.sizes != null && product.sizes!.isNotEmpty
+          ? product.sizes![_selectedSizeIndex]
+          : ProductSize(label: 'Regular', price: product.harga);
 
   int get totalPrice {
     final addonTotal = selectedAddons.fold(
@@ -46,11 +46,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return 'Rp${buffer.toString()}';
   }
 
-  // ================= PERBAIKAN DI SINI =================
   void _addToCart() {
     final controller = context.read<ProductController>();
 
-    // Menggunakan named parameters untuk selectedSize dan quantity sesuai controller baru
     controller.addToCart(
       product,
       selectedSize: selectedSize,
@@ -79,7 +77,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       backgroundColor: const Color(0xFFF0F4EC),
       body: Stack(
         children: [
-          // Gambar produk di atas
           SizedBox(
             height: MediaQuery.of(context).size.height * 0.42,
             width: double.infinity,
@@ -103,8 +100,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                   ),
           ),
-
-          // Back button & cart
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -167,8 +162,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
           ),
-
-          // Bottom sheet konten
           DraggableScrollableSheet(
             initialChildSize: 0.62,
             minChildSize: 0.58,
@@ -181,7 +174,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 child: Column(
                   children: [
-                    // Nama produk (header hijau)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                       child: Center(
@@ -203,8 +195,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                       ),
                     ),
-
-                    // Konten putih (scrollable)
                     Expanded(
                       child: Container(
                         decoration: const BoxDecoration(
@@ -216,7 +206,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           controller: scrollController,
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
                           children: [
-                            // Deskripsi
                             const Text(
                               'Description',
                               style: TextStyle(
@@ -232,9 +221,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   height: 1.5),
                             ),
                             const SizedBox(height: 20),
-
-                            // Pilihan Size
-                            if (product.sizes != null && product.sizes!.isNotEmpty) ...[
+                            if (product.sizes != null &&
+                                product.sizes!.isNotEmpty) ...[
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -343,9 +331,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               }),
                               const SizedBox(height: 16),
                             ],
-
-                            // Add-ons (jika ada)
-                            if (product.addons != null && product.addons!.isNotEmpty) ...[
+                            if (product.addons != null &&
+                                product.addons!.isNotEmpty) ...[
                               const Text(
                                 'Add-ons',
                                 style: TextStyle(
@@ -407,8 +394,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               );
             },
           ),
-
-          // Bottom bar: quantity + add to cart
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -425,7 +410,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
               child: Row(
                 children: [
-                  // Quantity control
                   Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFFF0F4EC),
@@ -476,8 +460,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-
-                  // Add to Cart button
                   Expanded(
                     child: GestureDetector(
                       onTap: _addToCart,

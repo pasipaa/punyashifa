@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:food_app/services/API_services.dart';
 import 'package:food_app/views/Cart_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -16,8 +19,6 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _loading = true;
 
   static const int _userId = 1;
-
-  // Warna konsisten dengan Dashboard
   static const Color _primary = Color(0xFF2D5016);
   static const Color _primaryLight = Color(0xFF4A7C2F);
   static const Color _bg = Color(0xFFF4F7F0);
@@ -33,35 +34,22 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _loading = true);
     try {
       final user = await ApiService.getUser(_userId);
-final history = await ApiService.getHistory();
-final wishlist = await ApiService.getWishlist();
+      final history = await ApiService.getHistory();
+      final wishlist = await ApiService.getWishlist();
       setState(() {
         _user = user;
         _history = history;
         _wishlist = wishlist;
       });
     } catch (e) {
+      debugPrint(e.toString());
       setState(() {
         _user = {'name': 'Nanami Kento', 'address': 'Your Address'};
+        _history = [];
+        _wishlist = [];
       });
     } finally {
       setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _deleteWishlist(int id, int index) async {
-    final ok = await ApiService.deleteWishlist(id);
-    if (ok) {
-      setState(() => _wishlist.removeAt(index));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Dihapus dari wishlist'),
-          backgroundColor: _primary,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
     }
   }
 
@@ -78,16 +66,93 @@ final wishlist = await ApiService.getWishlist();
     return 'Rp${buffer.toString()}';
   }
 
+  Future<void> _deleteHistoryItem(int index) async {
+    try {
+      final updated = List<dynamic>.from(_history);
+      updated.removeAt(index);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('history', jsonEncode(updated));
+
+      setState(() => _history = updated);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Riwayat dihapus'),
+          backgroundColor: _primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } catch (e) {
+      debugPrint('DELETE HISTORY ERROR: $e');
+    }
+  }
+
+  Future<void> _deleteAllHistory() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Hapus Semua Riwayat',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Yakin ingin menghapus semua riwayat pesanan?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Hapus Semua', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await ApiService.clearHistory();
+      setState(() => _history = []);
+    }
+  }
+
+  Future<void> _deleteWishlistItem(int index) async {
+    try {
+      final item = _wishlist[index];
+      final id = item['id'];
+
+      if (id != null) {
+        await ApiService.removeWishlist(int.tryParse(id.toString()) ?? -1);
+      } else {
+        await ApiService.removeWishlistByIndex(index);
+      }
+
+      setState(() => _wishlist.removeAt(index));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Dihapus dari wishlist'),
+          backgroundColor: _teal,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
+      }
+    } catch (e) {
+      debugPrint('DELETE WISHLIST ERROR: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: _primary),
-            )
+          ? const Center(child: CircularProgressIndicator(color: _primary))
           : Container(
-              // Gradient background serasi dengan Dashboard
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -119,11 +184,9 @@ final wishlist = await ApiService.getWishlist();
     );
   }
 
-  // ───────────────────────── HEADER ─────────────────────────
- Widget _buildHeader() {
-  final name = _user?['name'] ?? 'Guest';
-  final address = _user?['address'] ?? '-';
-  final avatar = _user?['avatar'] ?? '';
+  Widget _buildHeader() {
+    final name = _user?['name'] ?? 'Nanami Kento';
+    final address = _user?['address'] ?? '-';
 
     return Container(
       width: double.infinity,
@@ -134,90 +197,47 @@ final wishlist = await ApiService.getWishlist();
           colors: [_primary, _primaryLight],
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
-        boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 5)),
-        ],
       ),
       padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
-      child: Stack(
+      child: Column(
         children: [
-          // Dekorasi lingkaran (serasi dengan banner dashboard)
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 44,
+              backgroundColor: const Color(0xFFE8F0E0),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/nanami.jpeg',
+                  width: 88,
+                  height: 88,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),
-          Positioned(
-            right: 40,
-            bottom: -30,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
-              ),
+          const SizedBox(height: 14),
+          Text(
+            name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          Column(
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Avatar
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white38, width: 2),
-                ),
-                child: CircleAvatar(
-                  radius: 44,
-                  backgroundColor: Colors.white24,
-                  child: ClipOval(
-                    child: avatar.isNotEmpty
-                        ? Image.network(
-                            avatar,
-                            width: 88,
-                            height: 88,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _avatarPlaceholder(name),
-                          )
-                        : _avatarPlaceholder(name),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.location_on,
-                      color: Colors.white60, size: 14),
-                  const SizedBox(width: 4),
-                  Text(
-                    address,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
+              const Icon(Icons.location_on, color: Colors.white60, size: 14),
+              const SizedBox(width: 4),
+              Text(address, style: const TextStyle(color: Colors.white70, fontSize: 13)),
             ],
           ),
         ],
@@ -225,25 +245,6 @@ final wishlist = await ApiService.getWishlist();
     );
   }
 
-  Widget _avatarPlaceholder(String name) {
-    return Container(
-      width: 88,
-      height: 88,
-      color: const Color(0xFF3A6B1C),
-      child: Center(
-        child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : 'N',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ───────────────────────── ACTION BUTTONS ─────────────────────────
   Widget _buildActionButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -251,23 +252,14 @@ final wishlist = await ApiService.getWishlist();
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit Profile (coming soon)')),
-                );
-              },
-              icon: const Icon(Icons.edit_outlined,
-                  size: 16, color: _primary),
-              label: const Text(
-                'Edit Profile',
-                style: TextStyle(
-                    color: _primary, fontWeight: FontWeight.w600),
-              ),
+              onPressed: _showEditProfileDialog,
+              icon: const Icon(Icons.edit_outlined, size: 16, color: _primary),
+              label: const Text('Edit Profile',
+                  style: TextStyle(color: _primary, fontWeight: FontWeight.w600)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: _primary, width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
               ),
             ),
           ),
@@ -278,20 +270,13 @@ final wishlist = await ApiService.getWishlist();
                 context,
                 MaterialPageRoute(builder: (_) => const CartPage()),
               ),
-              icon: const Icon(Icons.shopping_cart_outlined,
-                  size: 16, color: Colors.white),
-              label: const Text(
-                'View Cart',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600),
-              ),
+              icon: const Icon(Icons.shopping_cart_outlined, size: 16, color: Colors.white),
+              label: const Text('View Cart',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _teal,
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22)),
-                elevation: 4,
-                shadowColor: _teal.withOpacity(0.4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
               ),
             ),
           ),
@@ -300,7 +285,6 @@ final wishlist = await ApiService.getWishlist();
     );
   }
 
-  // ───────────────────────── STATS ROW ─────────────────────────
   Widget _buildStatsRow() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -310,8 +294,7 @@ final wishlist = await ApiService.getWishlist();
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
-            BoxShadow(
-                color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+            BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
           ],
         ),
         child: Row(
@@ -333,81 +316,83 @@ final wishlist = await ApiService.getWishlist();
         children: [
           Icon(icon, color: _primary, size: 20),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: _primary),
-          ),
-          Text(label,
-              style:
-                  const TextStyle(fontSize: 11, color: Colors.black54)),
+          Text(value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primary)),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
         ],
       ),
     );
   }
 
-  Widget _statDivider() {
-    return Container(height: 40, width: 1, color: Colors.grey.shade200);
-  }
+  Widget _statDivider() =>
+      Container(height: 40, width: 1, color: Colors.grey.shade200);
 
-  // ───────────────────────── HISTORY SECTION ─────────────────────────
   Widget _buildHistorySection() {
+    final preview = _history.take(3).toList();
+    final hasMore = _history.length > 3;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header serasi dengan "People Top Picks" di dashboard
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Riwayat Pesanan',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
-              ),
-              Text('${_history.length} transaksi',
-                  style: const TextStyle(
-                      fontSize: 12, color: Colors.black45)),
+              const Text('Riwayat Pesanan',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              if (_history.isNotEmpty)
+                TextButton.icon(
+                  onPressed: _deleteAllHistory,
+                  icon: const Icon(Icons.delete_sweep_outlined, size: 16, color: Colors.red),
+                  label: const Text('Hapus Semua',
+                      style: TextStyle(color: Colors.red, fontSize: 12)),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                ),
             ],
           ),
           const SizedBox(height: 12),
-
           if (_history.isEmpty)
             _buildEmptyState(
               icon: Icons.receipt_long_outlined,
               message: 'Belum ada transaksi',
             )
-          else
-            ..._history.map((item) =>
-                _buildHistoryCard(item as Map<String, dynamic>)),
+          else ...[
+            ...preview.asMap().entries.map(
+                (e) => _buildHistoryCard(e.value as Map<String, dynamic>, e.key)),
+            if (hasMore)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _showAllHistorySheet,
+                    icon: const Icon(Icons.history, size: 16, color: _teal),
+                    label: Text(
+                      'Lihat semua (${_history.length - 3} lainnya)',
+                      style: const TextStyle(color: _teal, fontWeight: FontWeight.w600),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: _teal),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildHistoryCard(Map<String, dynamic> item) {
-    final name = item['nama_barang'] ??
-        item['name'] ??
-        item['product_name'] ??
-        'Produk';
-    final price =
-        _formatPrice(item['harga'] ?? item['price'] ?? item['total'] ?? 0);
-    final date =
-        item['tanggal'] ?? item['date'] ?? item['created_at'] ?? '';
-    final image =
-        item['gambar'] ?? item['image'] ?? item['image_url'] ?? '';
-
-    String formattedDate = date;
-    try {
-      if (date.isNotEmpty) {
-        final dt = DateTime.parse(date);
-        formattedDate =
-            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-      }
-    } catch (_) {}
+  Widget _buildHistoryCard(Map<String, dynamic> item, int index) {
+    final name = item['nama_barang'] ?? item['name'] ?? 'Produk';
+    final price = _formatPrice(item['harga'] ?? item['price'] ?? 0);
+    final image = item['image'] ?? item['gambar'] ?? '';
+    final tanggal = item['tanggal'] ?? '';
+    final qty = item['quantity'] ?? 1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -416,70 +401,56 @@ final wishlist = await ApiService.getWishlist();
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
-          BoxShadow(
-              color: Colors.black12, blurRadius: 8, offset: Offset(0, 3)),
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
         ],
       ),
       child: Row(
         children: [
-          // Thumbnail
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: image.isNotEmpty
+            child: image.toString().isNotEmpty
                 ? Image.network(
                     image,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                    errorBuilder: (_, __, ___) => _imageFallback(),
                   )
-                : _imagePlaceholder(),
+                : _imageFallback(),
           ),
           const SizedBox(width: 14),
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 14),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  price,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _primary),
-                ),
+                Text(name,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const SizedBox(height: 3),
+                Text(price,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: _primary)),
+                const SizedBox(height: 2),
+                Text('x$qty  •  $tanggal',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
               ],
             ),
           ),
-          // Date + status badge
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formattedDate,
-                style:
-                    TextStyle(fontSize: 11, color: Colors.grey.shade500),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Selesai',
-                  style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600),
+          PopupMenuButton<String>(
+            color: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            icon: const Icon(Icons.more_vert, color: Colors.grey),
+            onSelected: (value) async {
+              if (value == 'delete') await _deleteHistoryItem(index);
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                    SizedBox(width: 8),
+                    Text('Hapus', style: TextStyle(color: Colors.red)),
+                  ],
                 ),
               ),
             ],
@@ -489,30 +460,189 @@ final wishlist = await ApiService.getWishlist();
     );
   }
 
-  // ───────────────────────── WISHLIST SECTION ─────────────────────────
+  void _showAllHistorySheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (ctx, scrollController) {
+          return StatefulBuilder(
+            builder: (ctx, setSheetState) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Semua Riwayat (${_history.length})',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          TextButton.icon(
+                            onPressed: () async {
+                              Navigator.pop(ctx);
+                              await _deleteAllHistory();
+                            },
+                            icon: const Icon(Icons.delete_sweep_outlined,
+                                size: 16, color: Colors.red),
+                            label: const Text('Hapus Semua',
+                                style: TextStyle(color: Colors.red, fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: _history.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.receipt_long_outlined,
+                                      color: Colors.grey.shade300, size: 48),
+                                  const SizedBox(height: 8),
+                                  Text('Belum ada transaksi',
+                                      style: TextStyle(color: Colors.grey.shade400)),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: scrollController,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _history.length,
+                              itemBuilder: (_, i) {
+                                final item = _history[i] as Map<String, dynamic>;
+                                final name = item['nama_barang'] ?? 'Produk';
+                                final price = _formatPrice(item['harga'] ?? 0);
+                                final image = item['image'] ?? '';
+                                final tanggal = item['tanggal'] ?? '';
+                                final qty = item['quantity'] ?? 1;
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 6,
+                                          offset: Offset(0, 3)),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: image.toString().isNotEmpty
+                                            ? Image.network(
+                                                image,
+                                                width: 55,
+                                                height: 55,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    _imageFallback(size: 55),
+                                              )
+                                            : _imageFallback(size: 55),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(name,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14)),
+                                            const SizedBox(height: 3),
+                                            Text(price,
+                                                style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _primary)),
+                                            Text('x$qty  •  $tanggal',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey.shade500)),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuButton<String>(
+                                        color: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(14)),
+                                        icon: const Icon(Icons.more_vert,
+                                            color: Colors.grey),
+                                        onSelected: (value) async {
+                                          if (value == 'delete') {
+                                            await _deleteHistoryItem(i);
+                                            setSheetState(() {});
+                                          }
+                                        },
+                                        itemBuilder: (_) => [
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.delete_outline,
+                                                    color: Colors.red, size: 18),
+                                                SizedBox(width: 8),
+                                                Text('Hapus',
+                                                    style: TextStyle(
+                                                        color: Colors.red)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildWishlistSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Wishlist',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
-              ),
-              Text('${_wishlist.length} item',
-                  style: const TextStyle(
-                      fontSize: 12, color: Colors.black45)),
-            ],
-          ),
+          const Text('Wishlist',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-
           if (_wishlist.isEmpty)
             _buildEmptyState(
               icon: Icons.favorite_border,
@@ -522,17 +652,16 @@ final wishlist = await ApiService.getWishlist();
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 0.82,
+                childAspectRatio: 0.75,
               ),
               itemCount: _wishlist.length,
               itemBuilder: (context, index) {
-                final item = _wishlist[index] as Map<String, dynamic>;
-                return _buildWishlistCard(item, index);
+                return _buildWishlistCard(
+                    _wishlist[index] as Map<String, dynamic>, index);
               },
             ),
         ],
@@ -541,200 +670,187 @@ final wishlist = await ApiService.getWishlist();
   }
 
   Widget _buildWishlistCard(Map<String, dynamic> item, int index) {
-    final name = item['nama_barang'] ??
-        item['name'] ??
-        item['product_name'] ??
-        'Produk';
-    final price =
-        _formatPrice(item['harga'] ?? item['price'] ?? 0);
-    final image =
-        item['gambar'] ?? item['image'] ?? item['image_url'] ?? '';
-    final id = item['id'] ?? item['wishlist_id'] ?? 0;
+    final name = item['nama_barang'] ?? item['name'] ?? 'Produk';
+    final price = _formatPrice(item['harga'] ?? item['price'] ?? 0);
+    final image = item['image'] ?? item['gambar'] ?? '';
+    final category = item['category'] ?? '';
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: const [
-          BoxShadow(
-              color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image area
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(18)),
-                child: image.isNotEmpty
-                    ? Image.network(
-                        image,
-                        height: 115,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _cardImagePlaceholder(),
-                      )
-                    : _cardImagePlaceholder(),
-              ),
-
-              // Delete button (serasi: pakai warna merah rounded)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => _showDeleteConfirm(id, index),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade400,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.red.withOpacity(0.3),
-                            blurRadius: 4)
-                      ],
-                    ),
-                    child: const Icon(Icons.favorite,
-                        size: 15, color: Colors.white),
-                  ),
-                ),
-              ),
-
-              // Add to cart button (serasi dengan arrow button di dashboard)
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: _teal,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                          color: _teal.withOpacity(0.35),
-                          blurRadius: 4)
-                    ],
-                  ),
-                  child: const Icon(Icons.add,
-                      size: 16, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-
-          // Name & price
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: image.toString().isNotEmpty
+                        ? Image.network(
+                            image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _imageFallback(size: 120, radius: 18),
+                          )
+                        : _imageFallback(size: 120, radius: 18),
+                  ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  price,
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color: _primary,
-                      fontWeight: FontWeight.w600),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: PopupMenuButton<String>(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    onSelected: (value) async {
+                      if (value == 'delete') await _deleteWishlistItem(index);
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                            SizedBox(width: 8),
+                            Text('Hapus', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.more_vert, size: 18),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 3),
+            Text(category,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+            const Spacer(),
+            Text(price,
+                style: const TextStyle(
+                    color: _primary, fontWeight: FontWeight.w600, fontSize: 13)),
+          ],
+        ),
       ),
     );
   }
 
-  // ───────────────────────── HELPERS ─────────────────────────
-  Widget _buildEmptyState(
-      {required IconData icon, required String message}) {
+  Widget _imageFallback({double size = 60, double radius = 12}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F0E0),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: const Icon(Icons.fastfood, color: _primary),
+    );
+  }
+
+  Widget _buildEmptyState({required IconData icon, required String message}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-              color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
-        ],
       ),
       child: Column(
         children: [
           Icon(icon, color: Colors.grey.shade300, size: 40),
           const SizedBox(height: 8),
           Text(message,
-              style: TextStyle(
-                  color: Colors.grey.shade400, fontSize: 13)),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
         ],
       ),
     );
   }
 
-  void _showDeleteConfirm(int id, int index) {
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _user?['name'] ?? '');
+    final addressController = TextEditingController(text: _user?['address'] ?? '');
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Hapus Wishlist',
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Edit Profile',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        content:
-            const Text('Yakin ingin menghapus item ini dari wishlist?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Nama',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: addressController,
+              decoration: InputDecoration(
+                labelText: 'Address',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal',
-                style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(ctx);
-              _deleteWishlist(id, index);
+              setState(() {
+                _user = {
+                  ...?_user,
+                  'name': nameController.text,
+                  'address': addressController.text,
+                };
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: const Text('Profile berhasil diperbarui'),
+                backgroundColor: _primary,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ));
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12))),
-            child: const Text('Hapus',
-                style: TextStyle(color: Colors.white)),
+              backgroundColor: _primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _imagePlaceholder() {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F0E0),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Icon(Icons.fastfood, color: _primary, size: 24),
-    );
-  }
-
-  Widget _cardImagePlaceholder() {
-    return Container(
-      height: 115,
-      color: const Color(0xFFE8F0E0),
-      child: const Center(
-        child: Icon(Icons.fastfood, color: _primary, size: 32),
       ),
     );
   }

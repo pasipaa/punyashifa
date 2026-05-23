@@ -1,0 +1,1 @@
+final String BaseUrl = 'http://192.168.110.48:3000';

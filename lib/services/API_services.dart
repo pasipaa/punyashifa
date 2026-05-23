@@ -1,20 +1,37 @@
 import 'dart:convert';
-import 'package:food_app/constants/app_constanst.dart';
+
+import 'package:food_app/services/base_url.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // ================= BASE URL =================
-
   static Uri uri(String path) {
-    return Uri.parse('${AppConstants.baseUrl}$path');
+    return Uri.parse(
+      '${BaseUrl}$path',
+    );
   }
 
-  // ================= TOKEN =================
+  static Future<void> saveToken(
+    String token,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      'token',
+      token,
+    );
+  }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
+
     return prefs.getString('token');
+  }
+
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.clear();
   }
 
   static Future<Map<String, String>> getHeaders() async {
@@ -23,22 +40,28 @@ class ApiService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      if (token != null && token.isNotEmpty)
-        'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
-  // ================= DEBUG HELPER =================
-
-  static void logResponse(String title, http.Response res) {
+  static void logResponse(
+    String title,
+    http.Response response,
+  ) {
     print('====================');
+
     print('[$title]');
-    print('STATUS: ${res.statusCode}');
-    print('BODY: ${res.body}');
+
+    print(
+      'STATUS: ${response.statusCode}',
+    );
+
+    print(
+      'BODY: ${response.body}',
+    );
+
     print('====================');
   }
-
-  // ================= AUTH =================
 
   static Future<Map<String, dynamic>> login(
     String email,
@@ -57,21 +80,36 @@ class ApiService {
         }),
       );
 
-      logResponse("LOGIN", response);
+      logResponse(
+        "LOGIN",
+        response,
+      );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return data;
+        if (data['token'] != null) {
+          await saveToken(
+            data['token'],
+          );
+        }
+
+        return {
+          'success': true,
+          'data': data,
+          'token': data['token'],
+        };
       }
 
       return {
         'success': false,
         'message': data['message'] ?? 'Login gagal',
-        'status': response.statusCode,
       };
     } catch (e) {
-      print("LOGIN ERROR: $e");
+      print(
+        "LOGIN ERROR: $e",
+      );
+
       return {
         'success': false,
         'message': 'Tidak bisa connect ke server',
@@ -103,12 +141,18 @@ class ApiService {
         }),
       );
 
-      logResponse("REGISTER", response);
+      logResponse(
+        "REGISTER",
+        response,
+      );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return data;
+        return {
+          'success': true,
+          'data': data,
+        };
       }
 
       return {
@@ -116,7 +160,10 @@ class ApiService {
         'message': data['message'] ?? 'Register gagal',
       };
     } catch (e) {
-      print("REGISTER ERROR: $e");
+      print(
+        "REGISTER ERROR: $e",
+      );
+
       return {
         'success': false,
         'message': 'Server error',
@@ -125,7 +172,47 @@ class ApiService {
     }
   }
 
-  // ================= PRODUCTS =================
+  static Future<Map<String, dynamic>> forgotPassword(
+    String email,
+  ) async {
+    try {
+      final response = await http.post(
+        uri('/forgot-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+        }),
+      );
+
+      logResponse(
+        "FORGOT PASSWORD",
+        response,
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data;
+      }
+
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal kirim request',
+      };
+    } catch (e) {
+      print(
+        "FORGOT PASSWORD ERROR: $e",
+      );
+
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
 
   static Future<List<dynamic>> getProducts() async {
     try {
@@ -136,43 +223,36 @@ class ApiService {
         headers: headers,
       );
 
-      logResponse("PRODUCTS", response);
+      logResponse(
+        "PRODUCTS",
+        response,
+      );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+
+        if (data is List) {
+          return data;
+        }
+
+        if (data['data'] != null) {
+          return data['data'];
+        }
       }
 
       return [];
     } catch (e) {
-      print("PRODUCTS ERROR: $e");
+      print(
+        "PRODUCTS ERROR: $e",
+      );
+
       return [];
     }
   }
 
-  static Future<Map<String, dynamic>> addBarang(
-    Map<String, dynamic> data,
+  static Future<Map<String, dynamic>> getUser(
+    int id,
   ) async {
-    try {
-      final headers = await getHeaders();
-
-      final response = await http.post(
-        uri('/barang'),
-        headers: headers,
-        body: jsonEncode(data),
-      );
-
-      logResponse("ADD BARANG", response);
-
-      return jsonDecode(response.body);
-    } catch (e) {
-      print("ADD BARANG ERROR: $e");
-      return {'success': false, 'message': e.toString()};
-    }
-  }
-
-  // ================= USER =================
-
-  static Future<Map<String, dynamic>> getUser(int id) async {
     try {
       final headers = await getHeaders();
 
@@ -181,163 +261,236 @@ class ApiService {
         headers: headers,
       );
 
-      logResponse("USER", response);
+      logResponse(
+        "USER",
+        response,
+      );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+
+        if (data['data'] != null) {
+          return data['data'];
+        }
+
+        return data;
       }
 
       return {};
     } catch (e) {
-      print("USER ERROR: $e");
+      print(
+        "USER ERROR: $e",
+      );
+
       return {};
     }
   }
 
-  // ================= WISHLIST =================
+  static Future<bool> addWishlist(
+    Map<String, dynamic> item,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final oldWishlist = prefs.getString(
+        'wishlist',
+      );
+
+      List wishlist = [];
+
+      if (oldWishlist != null) {
+        wishlist = jsonDecode(oldWishlist);
+      }
+
+      final alreadyExist = wishlist.any(
+        (e) => e['id'] == item['id'],
+      );
+
+      if (!alreadyExist) {
+        wishlist.add(item);
+
+        await prefs.setString(
+          'wishlist',
+          jsonEncode(wishlist),
+        );
+      }
+
+      return true;
+    } catch (e) {
+      print(
+        "ADD WISHLIST ERROR: $e",
+      );
+
+      return false;
+    }
+  }
 
   static Future<List<dynamic>> getWishlist() async {
     try {
-      final headers = await getHeaders();
+      final prefs = await SharedPreferences.getInstance();
 
-      final response = await http.get(
-        uri('/wishlist'),
-        headers: headers,
+      final data = prefs.getString(
+        'wishlist',
       );
 
-      logResponse("WISHLIST", response);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+      if (data != null) {
+        return jsonDecode(data);
       }
 
       return [];
     } catch (e) {
-      print("WISHLIST ERROR: $e");
+      print(
+        "GET WISHLIST ERROR: $e",
+      );
+
       return [];
     }
   }
 
-  static Future<bool> addWishlist(int barangId) async {
+  static Future<bool> removeWishlist(
+    int id,
+  ) async {
     try {
-      final headers = await getHeaders();
+      final prefs = await SharedPreferences.getInstance();
 
-      final response = await http.post(
-        uri('/wishlist'),
-        headers: headers,
-        body: jsonEncode({'barang_id': barangId}),
+      final data = prefs.getString(
+        'wishlist',
       );
 
-      logResponse("ADD WISHLIST", response);
+      if (data == null) {
+        return false;
+      }
 
-      return response.statusCode == 200 ||
-          response.statusCode == 201;
+      List wishlist = jsonDecode(data);
+
+      wishlist.removeWhere(
+        (e) => e['id'] == id,
+      );
+
+      await prefs.setString(
+        'wishlist',
+        jsonEncode(wishlist),
+      );
+
+      return true;
     } catch (e) {
-      print("ADD WISHLIST ERROR: $e");
+      print(
+        "REMOVE WISHLIST ERROR: $e",
+      );
+
       return false;
     }
   }
-
-  static Future<bool> deleteWishlist(int id) async {
-    try {
-      final headers = await getHeaders();
-
-      final response = await http.delete(
-        uri('/wishlist/$id'),
-        headers: headers,
-      );
-
-      logResponse("DELETE WISHLIST", response);
-
-      return response.statusCode == 200 ||
-          response.statusCode == 204;
-    } catch (e) {
-      print("DELETE WISHLIST ERROR: $e");
-      return false;
-    }
-  }
-
-  // ================= TRANSAKSI =================
 
   static Future<bool> postTransaksi(
     List<Map<String, dynamic>> items,
     int total,
   ) async {
     try {
-      final headers = await getHeaders();
+      final prefs = await SharedPreferences.getInstance();
 
-      final response = await http.post(
-        uri('/transaksi'),
-        headers: headers,
-        body: jsonEncode({
-          'items': items,
-          'total': total,
-        }),
+      List history = [];
+
+      for (var item in items) {
+        history.add({
+          "id": DateTime.now().millisecondsSinceEpoch,
+          "user_id": 1,
+          "barang_id": item['barang_id'] ?? 0,
+          "nama_barang": item['nama_barang'] ?? 'Produk',
+          "image": item['image'] ?? '',
+          "harga": item['harga'] ?? 0,
+          "quantity": item['quantity'] ?? 1,
+          "tanggal": DateTime.now().toString().substring(0, 10),
+          "status": "success",
+        });
+      }
+
+      await prefs.setString(
+        'history',
+        jsonEncode(history),
       );
 
-      logResponse("TRANSAKSI", response);
-
-      return response.statusCode == 200 ||
-          response.statusCode == 201;
+      return true;
     } catch (e) {
-      print("TRANSAKSI ERROR: $e");
+      print(
+        "TRANSAKSI ERROR: $e",
+      );
+
       return false;
     }
   }
 
   static Future<List<dynamic>> getHistory() async {
     try {
-      final headers = await getHeaders();
+      final prefs = await SharedPreferences.getInstance();
 
-      final response = await http.get(
-        uri('/transaksi'),
-        headers: headers,
+      final data = prefs.getString(
+        'history',
       );
 
-      logResponse("HISTORY", response);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+      if (data != null) {
+        return jsonDecode(data);
       }
 
       return [];
     } catch (e) {
-      print("HISTORY ERROR: $e");
+      print(
+        "HISTORY ERROR: $e",
+      );
+
       return [];
     }
   }
 
-  // ================= FORGOT PASSWORD =================
-
-  static Future<Map<String, dynamic>> forgotPassword(
-    String emailOrPhone,
-  ) async {
+  static Future<bool> clearHistory() async {
     try {
-      final response = await http.post(
-        uri('/forgot-password'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'email': emailOrPhone}),
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.remove('history');
+
+      return true;
+    } catch (e) {
+      print(
+        "CLEAR HISTORY ERROR: $e",
       );
 
-      logResponse("FORGOT PASSWORD", response);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-
-      return {
-        'success': false,
-        'message': 'Gagal kirim request'
-      };
-    } catch (e) {
-      print("FORGOT PASSWORD ERROR: $e");
-      return {
-        'success': false,
-        'message': e.toString(),
-      };
+      return false;
     }
   }
+
+  static Future<bool> clearWishlist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.remove('wishlist');
+
+      return true;
+    } catch (e) {
+      print(
+        "CLEAR WISHLIST ERROR: $e",
+      );
+
+      return false;
+    }
+  }
+
+  static Future<bool> removeWishlistByIndex(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = prefs.getString('wishlist');
+      if (data == null) return false;
+
+      List wishlist = jsonDecode(data);
+      if (index < 0 || index >= wishlist.length) return false;
+
+      wishlist.removeAt(index);
+      await prefs.setString('wishlist', jsonEncode(wishlist));
+      return true;
+    } catch (e) {
+      print('REMOVE WISHLIST BY INDEX ERROR: $e');
+      return false;
+    }
+  }
+
+  static Future<void> removeHistory(int index) async {}
 }

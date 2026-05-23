@@ -64,7 +64,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
           content: Text(auth.error ?? 'Gagal mengirim permintaan'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -78,7 +79,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
       body: SafeArea(
         child: Column(
           children: [
-            // Top bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
@@ -104,7 +104,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -112,129 +111,140 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView>
                   opacity: _fadeAnim,
                   child: SlideTransition(
                     position: _slideAnim,
-                    child: _sent ? _SuccessContent() : Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 12),
-                          const BroccoliMascot(size: 140),
-                          const SizedBox(height: 18),
-                          Text(
-                            'Forgot Password',
-                            style: GoogleFonts.poppins(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1A3A2A),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Masukkan email atau nomor HP yang terdaftar',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Form card
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1A3A2A),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                    child: _sent
+                        ? _SuccessContent()
+                        : Form(
+                            key: _formKey,
                             child: Column(
                               children: [
-                                AuthTextField(
-                                  controller: _emailCtrl,
-                                  hint: 'Masukkan no tlpn / email',
-                                  icon: Icons.contact_phone_outlined,
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (v) =>
-                                      v!.isEmpty ? 'Field ini wajib diisi' : null,
-                                ),
                                 const SizedBox(height: 12),
-                                AuthTextField(
-                                  controller: _usernameCtrl,
-                                  hint: 'Username',
-                                  icon: Icons.person_outline,
-                                  validator: (v) =>
-                                      v!.isEmpty ? 'Username wajib diisi' : null,
-                                ),
-                                const SizedBox(height: 12),
-                                AuthTextField(
-                                  controller: _newPassCtrl,
-                                  hint: 'Buat Password anda',
-                                  icon: Icons.lock_outline,
-                                  obscureText: _obscure,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscure
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: Colors.grey[400],
-                                      size: 20,
-                                    ),
-                                    onPressed: () =>
-                                        setState(() => _obscure = !_obscure),
+                                const BroccoliMascot(size: 140),
+                                const SizedBox(height: 18),
+                                Text(
+                                  'Forgot Password',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1A3A2A),
                                   ),
-                                  validator: (v) =>
-                                      v!.length < 6 ? 'Min. 6 karakter' : null,
                                 ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Masukkan email atau nomor HP yang terdaftar',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A3A2A),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      AuthTextField(
+                                        controller: _emailCtrl,
+                                        hint: 'Masukkan no tlpn / email',
+                                        icon: Icons.contact_phone_outlined,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        validator: (v) => v!.isEmpty
+                                            ? 'Field ini wajib diisi'
+                                            : null,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      AuthTextField(
+                                        controller: _usernameCtrl,
+                                        hint: 'Username',
+                                        icon: Icons.person_outline,
+                                        validator: (v) => v!.isEmpty
+                                            ? 'Username wajib diisi'
+                                            : null,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      AuthTextField(
+                                        controller: _newPassCtrl,
+                                        hint: 'Buat Password anda',
+                                        icon: Icons.lock_outline,
+                                        obscureText: _obscure,
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _obscure
+                                                ? Icons.visibility_off_outlined
+                                                : Icons.visibility_outlined,
+                                            color: Colors.grey[400],
+                                            size: 20,
+                                          ),
+                                          onPressed: () => setState(
+                                              () => _obscure = !_obscure),
+                                        ),
+                                        validator: (v) => v!.length < 6
+                                            ? 'Min. 6 karakter'
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                AuthButton(
+                                  label: 'Continue',
+                                  isLoading: auth.isLoading,
+                                  onTap: _submit,
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    const Expanded(
+                                        child:
+                                            Divider(color: Color(0xFFD0D0D0))),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12),
+                                      child: Text('OR',
+                                          style: GoogleFonts.poppins(
+                                              color: Colors.grey[500],
+                                              fontSize: 12)),
+                                    ),
+                                    const Expanded(
+                                        child:
+                                            Divider(color: Color(0xFFD0D0D0))),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                _GoogleButton(),
+                                const SizedBox(height: 20),
+                                GestureDetector(
+                                  onTap: () => Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const LoginView()),
+                                  ),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      text: 'Not a user yet? ',
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.grey[600],
+                                          fontSize: 13),
+                                      children: [
+                                        TextSpan(
+                                          text: 'Sign Up',
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFF1A3A2A),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
                               ],
                             ),
                           ),
-
-                          const SizedBox(height: 20),
-                          AuthButton(
-                            label: 'Continue',
-                            isLoading: auth.isLoading,
-                            onTap: _submit,
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              const Expanded(child: Divider(color: Color(0xFFD0D0D0))),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('OR',
-                                    style: GoogleFonts.poppins(
-                                        color: Colors.grey[500], fontSize: 12)),
-                              ),
-                              const Expanded(child: Divider(color: Color(0xFFD0D0D0))),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          _GoogleButton(),
-                          const SizedBox(height: 20),
-                          GestureDetector(
-                            onTap: () => Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => const LoginView()),
-                            ),
-                            child: RichText(
-                              text: TextSpan(
-                                text: 'Not a user yet? ',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.grey[600], fontSize: 13),
-                                children: [
-                                  TextSpan(
-                                    text: 'Sign Up',
-                                    style: GoogleFonts.poppins(
-                                      color: const Color(0xFF1A3A2A),
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ),

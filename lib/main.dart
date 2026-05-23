@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:food_app/controllers/Product_controllers.dart';
 import 'package:food_app/widgets/auth_provider.dart';
 import 'package:food_app/views/splash_view.dart';

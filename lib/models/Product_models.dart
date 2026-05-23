@@ -8,19 +8,20 @@ class Addon {
   });
 
   factory Addon.fromJson(dynamic json) {
-    // kalau backend cuma kirim string
     if (json is String) {
-      return Addon(
-        name: json,
-        price: 2000,
-      );
+      return Addon(name: json, price: 2000);
     }
-
-    // kalau backend kirim object
     return Addon(
       name: json['name'] ?? '',
       price: json['price'] ?? 2000,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "name": name,
+      "price": price,
+    };
   }
 }
 
@@ -31,10 +32,10 @@ class Product {
   final String description;
   final String imageUrl;
   final int harga;
+  final int? diskon;
   final List<ProductSize> sizes;
   final List<Addon> addons;
   final String type;
-
   bool isWishlisted;
 
   Product({
@@ -47,13 +48,20 @@ class Product {
     required this.sizes,
     required this.addons,
     required this.type,
+    this.diskon,
     this.isWishlisted = false,
   });
 
+  // Harga setelah diskon (gunakan ini di UI)
+  int get hargaDiskon {
+    if (diskon == null || diskon! <= 0) return harga;
+    return harga - (harga * diskon! ~/ 100);
+  }
+
   factory Product.fromJson(Map<String, dynamic> json) {
-    final rawSizes = json['sizes'] as List<dynamic>? ?? [];
     final int baseHarga = json['harga'] ?? 0;
 
+    final rawSizes = json['sizes'] as List<dynamic>? ?? [];
     final sizes = rawSizes.asMap().entries.map((entry) {
       return ProductSize(
         label: entry.value.toString(),
@@ -70,11 +78,30 @@ class Product {
       description: json['deskripsi'] ?? '',
       imageUrl: json['image'] ?? '',
       harga: baseHarga,
+      diskon: json['diskon'] != null
+          ? int.tryParse(json['diskon'].toString())
+          : null,
       sizes: sizes,
       addons: rawAddons.map((e) => Addon.fromJson(e)).toList(),
       type: json['type'] ?? '',
       isWishlisted: json['isWishlisted'] ?? false,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "nama_barang": name,
+      "category": category,
+      "deskripsi": description,
+      "image": imageUrl,
+      "harga": harga,
+      "diskon": diskon,
+      "type": type,
+      "sizes": sizes.map((e) => {"label": e.label, "price": e.price}).toList(),
+      "addons": addons.map((e) => e.toJson()).toList(),
+      "isWishlisted": isWishlisted,
+    };
   }
 }
 

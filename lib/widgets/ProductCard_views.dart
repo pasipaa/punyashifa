@@ -15,9 +15,7 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final price = product.sizes.isNotEmpty
-        ? product.sizes.last.price
-        : 0;
+    final price = product.sizes.isNotEmpty ? product.sizes.last.price : 0;
 
     return GestureDetector(
       onTap: onTap,
@@ -36,7 +34,6 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image + Add button overlay
             Stack(
               children: [
                 ClipRRect(
@@ -75,8 +72,6 @@ class ProductCard extends StatelessWidget {
                 ),
               ],
             ),
-
-            // Name & Price
             Padding(
               padding: const EdgeInsets.all(8),
               child: Column(
